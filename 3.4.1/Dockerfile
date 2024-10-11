@@ -10,7 +10,7 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-FROM debian:buster-slim
+FROM debian:bookworm-slim
 
 LABEL maintainer="CouchDB Developers dev@couchdb.apache.org"
 
@@ -28,13 +28,12 @@ RUN set -ex; \
      ; \
     rm -rf /var/lib/apt/lists/*
 
-# grab gosu for easy step-down from root and tini for signal handling and zombie reaping
+# grab tini for signal handling and zombie reaping
 # see https://github.com/apache/couchdb-docker/pull/28#discussion_r141112407
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends gosu tini; \
+    apt-get install -y --no-install-recommends tini; \
     rm -rf /var/lib/apt/lists/*; \
-    gosu nobody true; \
     tini --version
 
 # http://docs.couchdb.org/en/latest/install/unix.html#installing-the-apache-couchdb-packages
@@ -54,7 +53,7 @@ RUN set -eux; \
     apt purge -y --autoremove curl; \
     rm -rf /var/lib/apt/lists/*
 
-ENV COUCHDB_VERSION 3.2.0
+ENV COUCHDB_VERSION 3.4.1
 
 RUN . /etc/os-release; \
     echo "deb [signed-by=/usr/share/keyrings/couchdb-archive-keyring.gpg] https://apache.jfrog.io/artifactory/couchdb-deb/ ${VERSION_CODENAME} main" | \
@@ -67,7 +66,7 @@ RUN set -eux; \
     echo "couchdb couchdb/mode select none" | debconf-set-selections; \
 # we DO want recommends this time
     DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --allow-remove-essential --allow-change-held-packages \
-            couchdb="$COUCHDB_VERSION"~buster \
+            couchdb="$COUCHDB_VERSION"~bookworm \
     ; \
 # Undo symlinks to /var/log and /var/lib
     rmdir /var/lib/couchdb /var/log/couchdb; \

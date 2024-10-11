@@ -33,8 +33,12 @@ set -e
 
 PROMPT="Are you sure (y/n)? "
 QEMU="YES"
-PLATFORMS="amd64 arm64v8 ppc64le s390x"
-BUILDX_PLATFORMS="linux/amd64,linux/arm64/v8,linux/ppc64le,linux/s390x"
+PLATFORMS="amd64 arm64v8 s390x"
+BUILDX_PLATFORMS="linux/amd64,linux/arm64/v8,linux/s390x"
+# Temporarily disable ppc64le because https://github.com/apache/couchdb-pkg/commit/365d07ce43d9d6d9c3377dd08dc8fc5f656a11bf
+# See also lines 163, 170, 171
+# PLATFORMS="amd64 arm64v8 ppc64le s390x"
+# BUILDX_PLATFORMS="linux/amd64,linux/arm64/v8,linux/ppc64le,linux/s390x"
 
 prompt() {
   if [ -z "${PROMPT}" ]
@@ -153,14 +157,18 @@ push() {
   docker manifest create apache/couchdb:$tag_as \
     apache/couchdb:amd64-$1 \
     apache/couchdb:arm64v8-$1 \
-    apache/couchdb:ppc64le-$1 \
+# Temporarily disable ppc64le because https://github.com/apache/couchdb-pkg/commit/365d07ce43d9d6d9c3377dd08dc8fc5f656a11bf
+# See also line 38
+#    apache/couchdb:ppc64le-$1 \
     apache/couchdb:s390x-$1
 
   docker manifest annotate apache/couchdb:$tag_as \
     apache/couchdb:arm64v8-$1 --os linux --arch arm64 --variant v8
 
-  docker manifest annotate apache/couchdb:$tag_as \
-    apache/couchdb:ppc64le-$1 --os linux --arch ppc64le
+  # Temporarily disable ppc64le because https://github.com/apache/couchdb-pkg/commit/365d07ce43d9d6d9c3377dd08dc8fc5f656a11bf
+  # See also line 38
+  # docker manifest annotate apache/couchdb:$tag_as \
+  #   apache/couchdb:ppc64le-$1 --os linux --arch ppc64le
   
   docker manifest annotate apache/couchdb:$tag_as \
     apache/couchdb:s390x-$1 --os linux --arch s390x
@@ -180,7 +188,6 @@ buildx() {
   fi
   docker buildx rm apache-couchdb >/dev/null 2>&1 || true
 
-
   echo "Creating the buildx environment..."
   docker buildx create --name apache-couchdb --driver docker-container --use
   docker buildx use apache-couchdb
@@ -188,6 +195,18 @@ buildx() {
 
   echo "Starting buildx build at $(date)..."
   docker buildx build --platform ${BUILDX_PLATFORMS} --tag apache/couchdb:$tag_as --push $1
+  echo ""
+
+  # build nouveau
+  docker buildx rm apache-couchdb-nouveau >/dev/null 2>&1 || true
+
+  echo "Creating the buildx nouveau environment..."
+  docker buildx create --name apache-couchdb-nouveau --driver docker-container --use
+  docker buildx use apache-couchdb-nouveau
+  docker buildx inspect --bootstrap
+
+  echo "Starting buildx nouveau build at $(date)..."
+  docker buildx build --platform ${BUILDX_PLATFORMS} --tag apache/couchdb:${tag_as}-nouveau --push $1-nouveau
   echo ""
 }
 
